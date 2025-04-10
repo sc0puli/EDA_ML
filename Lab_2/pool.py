@@ -14,6 +14,11 @@ from distance.levenshtein import levenshtein
 # путь к файлу с названиями статей Википедии без специальных символов
 article_names_path = os.path.join(os.path.dirname(__file__), 'data', 'wiki titles no special.txt')
 
+# Загрузка данных из файла `words in titles.json`
+file_path = os.path.join(os.path.dirname(__file__), 'data', 'words in titles.json')
+with open(file_path, 'r') as file:
+    words_in_titles = json.load(file)
+
 
 # сравнение запроса (word) с названием статьи (ref)
 def mapper(word, ref):
@@ -29,6 +34,7 @@ def mapper(word, ref):
 
     # Если оба условия не выполнены, вычисляем редакционное расстояние
     return ref, levenshtein(word, ref, lowercase=True)
+
 
 # выбор лучшего результата из двух
 def reducer(current_ref, new_ref):
@@ -51,10 +57,6 @@ def chunk_processer(word, refs):
     reduced = reduce(reducer, mapped)
     return reduced
 
-# Загрузка данных из файла `words in titles.json`
-file_path = os.path.join(os.path.dirname(__file__), 'data', 'words in titles.json')
-with open(file_path, 'r') as file:
-    words_in_titles = json.load(file)
 
 # основная часть скрипта
 # Pool должен использоваться здесь
@@ -90,13 +92,13 @@ if __name__ == '__main__':
     else:
         print("Ближайшее слово не найдено в словаре.")
 
-    N = 32
+    N = 16
 
     with Time('Параллельные вычисления'):
         # ищем ближайшее совпадение параллельно в N процессах
         # фактически количество одновременно работающих процессов ограничено возможностями процессора
         with Pool(processes=N) as pool:
-            name_chunks = list(chunkify(article_names, N))
+            name_chunks = list(chunkify(all_words, N))
             mapped = pool.starmap(chunk_processer, zip(it.repeat(word), name_chunks))
             reduced = reduce(reducer, mapped)
     print(reduced)
